@@ -1,6 +1,9 @@
 var express = require('express');
 var router = express.Router();
+var Book = require('../models/book');
+var debug = require('debug')('books-2:server');
 
+/*
 var books =[
     {
       "isbn": 12345678,
@@ -26,196 +29,279 @@ var books =[
     }
 ]
 
+*/
 
 /*GET books listing*/
-router.get('/', function(req, res, next){
-    res.send(books);
+router.get('/', async function(req, res, next){
+  try {
+    const result = await Book.find();
+    res.send(result);
+  } catch(e){
+    debug("DB problem", e);
+    res.sendStatus(500);
+  }
 });
 
-module.exports = router;
 
 /*GET books/isbn */
-router.get('/:isbn', function(req, res, next) {
-  const bookId = parseInt(req.params.isbn);
-  const findBook = books.find(book => {return book.isbn === bookId});
-  if (findBook) {
-    res.status(201).send(findBook);
-  }else{
-    res.status(404).send("Libro no encontrado");
+router.get('/:isbn', async function(req, res, next) {
+  const isbn = req.params.isbn;
+
+  try {
+    const foundBook = await Book.findOne({ isbn });
+
+    if (foundBook) {
+      res.status(200).send(foundBook);
+    } else {
+      res.status(404).send("Libro no encontrado");
+    }
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
   }
 });
 
 /*GET books/isbn/seller */
-router.get('/:isbn/:seller', function(req, res, next) {
-  const bookId = parseInt(req.params.isbn); 
+router.get('/:isbn/:seller', async function(req, res, next) {
+  const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
-  const findBook = books.find(book => book.isbn === bookId);
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
+
+  try {
+    const foundBook = await Book.findOne({ isbn });
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    const foundSeller = foundBook.options.find(option => option.seller === sellerId);
+
+    if (!foundSeller) {
+      return res.status(404).send("Vendedor no encontrado para este libro");
+    }
+
+    res.status(200).send(foundSeller);
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
   }
-  const findSeller = findBook.options.find(option => option.seller === sellerId);
-  if (!findSeller) {
-    return res.status(404).send("Vendedor no encontrado para este libro");
-  }
-  res.status(200).send(findSeller);
 });
 
 /*GET books/isbn/seller/options?options= */
-router.get('/:isbn/:seller/options', function(req, res, next) {
-  const bookId = parseInt(req.params.isbn);
+router.get('/:isbn/:seller/options', async function(req, res, next) {
+  const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
-  const findBook = books.find(book => book.isbn === bookId);
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
-  }
-  const findOption = findBook.options.find(option => option.seller === sellerId);
-  if (!findOption) {
-    return res.status(404).send("Opción de vendedor no encontrada para este libro");
-  }
   const options = req.query.options;
-  if (options === 'stock') {
-    return res.status(200).send({ stock: findOption.stock });
-  } else if (options === 'prize') {
-    return res.status(200).send({ prize: findOption.prize });
-  } else if (options === 'reviews'){
-    return res.status(200).send({ reviews: findOption.reviews });
-  } else if (options === 'seller'){
-    return res.status(200).send({ seller: findOption.seller });
-  } else {
-    return res.status(400).send("Parámetro 'options' no válido");
+
+  try {
+    const foundBook = await Book.findOne({ isbn });
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    const foundOption = foundBook.options.find(option => option.seller === sellerId);
+    if (!foundOption) {
+      return res.status(404).send("Opción de vendedor no encontrada para este libro");
+    }
+
+    if (options === 'stock') {
+      return res.status(200).send({ stock: foundOption.stock });
+    } else if (options === 'prize') {
+      return res.status(200).send({ prize: foundOption.prize });
+    } else if (options === 'reviews') {
+      return res.status(200).send({ reviews: foundOption.reviews });
+    } else if (options === 'seller') {
+      return res.status(200).send({ seller: foundOption.seller });
+    } else {
+      return res.status(400).send("Parámetro 'options' no válido");
+    }
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
   }
 });
 
 
 /* POST books */
-router.post('/', function(req, res, next) {
-  var book = req.body;
-  books.push(book);
-  res.status(200).send('Libro añadido');
+router.post('/', async function(req, res, next) {
+  const { isbn, author, title, year, genre, options } = req.body;
+  
+  const newBook = new Book({
+    isbn,
+    author,
+    title,
+    year,
+    genre,
+    options
+  });
+
+  try {
+    await newBook.save();
+    return res.sendStatus(201);
+  } catch (e) {
+    console.error(e);
+    res.sendStatus(500);
+  }
 });
 
 /* POST books/:isbn/:seller */
-router.post('/:isbn/:seller', function(req, res, next) {
-  const bookId = parseInt(req.params.isbn);
+router.post('/:isbn/:seller', async function(req, res, next) {
+  const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
-  const findBook = books.find(book => book.isbn === bookId);
+  try {
+    // Buscar el libro por ISBN en la base de datos
+    const foundBook = await Book.findOne({ isbn });
 
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
-  }
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
 
-  const findSeller = findBook.options.find(option => option.seller === sellerId);
+    // Verificar si el vendedor ya está asociado al libro
+    const existingSeller = foundBook.options.find(option => option.seller === sellerId);
 
-  if (!findSeller) {
-    findBook.options.push({
-      seller: sellerId,
-      stock: req.body.stock, 
-      precio: req.body.prize, 
-      reviews: req.body.reviews 
-    });
+    if (!existingSeller) {
+      // Si el vendedor no está asociado, agregarlo a la lista de opciones del libro
+      foundBook.options.push({
+        seller: sellerId,
+        stock: req.body.stock, 
+        prize: req.body.prize, 
+        reviews: req.body.reviews 
+      });
 
-    res.status(200).send('Vendedor añadido al libro');
-  } else {
-    res.status(200).send('El vendedor ya está asociado a este libro');
+      // Guardar los cambios en la base de datos
+      await foundBook.save();
+
+      res.status(200).send('Vendedor añadido al libro');
+    } else {
+      res.status(200).send('El vendedor ya está asociado a este libro');
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error al agregar el vendedor al libro');
   }
 });
 
-/*PUT book*/
-router.put('/:isbn', function(req, res, next) {
-  var bookId = parseInt(req.params.isbn);
+/* PUT book */
+router.put('/:isbn', async function(req, res, next) {
+  const isbn = req.params.isbn;
 
-  var findBook = books.find(libro => libro.isbn === bookId);
+  try {
+    const foundBook = await Book.findOne({ isbn });
 
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    if (foundBook.isbn !== isbn) {
+      return res.status(400).send("ISBN incorrecto, debe indicar correctamente el ISBN del libro que quiere modificar (No es posible modificar el ISBN)");
+    }
+
+    foundBook.title = req.body.title;
+    foundBook.author = req.body.author;
+    foundBook.year = req.body.year;
+    foundBook.genre = req.body.genre;
+
+    await foundBook.save();
+
+    res.status(200).send("Libro actualizado exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
   }
-  if (findBook.isbn !== req.body.isbn){
-    return res.status(404).send("ISBN incorrecto, debe indicar correctamente el ISBN del libro que quiere modificar (No es posible modificar el ISBN)");
-  }
-  
-    findBook.title = req.body.title;
-    findBook.author = req.body.author;
-    findBook.year = req.body.year;
-    findBook.genre = req.body.genre;
-
-  res.status(201).send("Libro actualizado exitosamente");
 });
 
-
-/*PUT books/:isbn/:seller/options */
-router.put('/:isbn/:seller/options', function(req, res, next) {
-  const bookId = parseInt(req.params.isbn);
-  const sellerId = parseInt(req.params.seller);
-  const findBook = books.find(book => book.isbn === bookId);
-
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
-  }
-
-  const findOption = findBook.options.find(option => option.seller === sellerId);
-
-  if (!findOption) {
-    return res.status(404).send("Opción de vendedor no encontrada para este libro");
-  }
-
-  const options = req.query.options;
-
-  if (options === 'stock') {
-    findOption.stock = req.body.stock;
-  } else if (options === 'prize') {
-    findOption.prize = req.body.prize;
-  } else if (options === 'reviews') {
-    findOption.reviews = req.body.reviews;
-  } else {
-    return res.status(400).send("Parámetro 'options' no válido");
-  }
-
-  res.status(200).send("Opción actualizada exitosamente");
-});
-
-/*DELETE book/:id*/
-router.delete('/:isbn', function(req, res, next) {
-  var bookId = parseInt(req.params.isbn);
-  var findBook = books.find(book => book.isbn === bookId);
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
-  }
-  books.splice(findBook, 1);
-  res.status(200).send("Libro eliminado exitosamente");
-});
-
-
-/*DELETE book/:id/:seller*/
-router.delete('/:isbn/:seller', function(req, res, next) {
-  const bookId = parseInt(req.params.isbn);
+/* PUT books/:isbn/:seller/options */
+router.put('/:isbn/:seller/options', async function(req, res, next) {
+  const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
-  const findBook = books.find(book => book.isbn === bookId);
+  try {
+    const foundBook = await Book.findOne({ isbn });
 
-  if (!findBook) {
-    return res.status(404).send("Libro no encontrado");
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    const foundOption = foundBook.options.find(option => option.seller === sellerId);
+
+    if (!foundOption) {
+      return res.status(404).send("Opción de vendedor no encontrada para este libro");
+    }
+
+    const options = req.query.options;
+
+    if (options === 'stock') {
+      foundOption.stock = req.body.stock;
+    } else if (options === 'prize') {
+      foundOption.prize = req.body.prize;
+    } else if (options === 'reviews') {
+      foundOption.reviews = req.body.reviews;
+    } else {
+      return res.status(400).send("Parámetro 'options' no válido");
+    }
+
+    await foundBook.save();
+
+    res.status(200).send("Opción actualizada exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
   }
-  if(!findBook.options){
-    return res.status(404).send("Opciones no disponibles");
-  }
-
-  const findOption = findBook.options.find(option => option.seller === sellerId);
-
-  if (!findOption) {
-    return res.status(404).send("Vendedor no encontrado para este libro");
-  }
-
-  const numVendedores = findBook.options.length;
-
-  if (numVendedores > 1) {
-    findBook.options.splice(findOption, 1);
-  } else {
-    books.splice(findBook, 1);
-  }
-
-  res.status(200).send("Datos del vendedor borrados exitosamente");
 });
 
+/* DELETE book/:id */
+router.delete('/:isbn', async function(req, res, next) {
+  const isbn = req.params.isbn;
+
+  try {
+    const result = await Book.findOneAndDelete({ isbn });
+
+    if (!result) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    res.status(200).send("Libro eliminado exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
+
+/* DELETE book/:id/:seller */
+router.delete('/:isbn/:seller', async function(req, res, next) {
+  const isbn = req.params.isbn;
+  const sellerId = parseInt(req.params.seller);
+
+  try {
+    const foundBook = await Book.findOne({ isbn });
+
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    if (!foundBook.options) {
+      return res.status(404).send("Opciones no disponibles");
+    }
+
+    const findOptionIndex = foundBook.options.findIndex(option => option.seller === sellerId);
+
+    if (findOptionIndex === -1) {
+      return res.status(404).send("Vendedor no encontrado para este libro");
+    }
+
+    const numVendedores = foundBook.options.length;
+
+    if (numVendedores > 1) {
+      foundBook.options.splice(findOptionIndex, 1);
+      await foundBook.save();
+    } else {
+      await Book.findOneAndDelete({ isbn });
+    }
+
+    res.status(200).send("Datos del vendedor borrados exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
 
 module.exports = router;
