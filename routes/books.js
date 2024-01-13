@@ -35,7 +35,7 @@ var books =[
 router.get('/', async function(req, res, next){
   try {
     const result = await Book.find();
-    res.send(result);
+    res.send(result.map((c) => c.cleanup()));
   } catch(e){
     debug("DB problem", e);
     res.sendStatus(500);
@@ -51,7 +51,7 @@ router.get('/:isbn', async function(req, res, next) {
     const foundBook = await Book.findOne({ isbn });
 
     if (foundBook) {
-      res.status(200).send(foundBook);
+      res.status(200).send(foundBook.cleanup());
     } else {
       res.status(404).send("Libro no encontrado");
     }
@@ -78,7 +78,7 @@ router.get('/:isbn/:seller', async function(req, res, next) {
       return res.status(404).send("Vendedor no encontrado para este libro");
     }
 
-    res.status(200).send(foundSeller);
+    res.status(200).send(foundSeller.cleanup());
   } catch (error) {
     console.error(error);
     res.sendStatus(500);
@@ -137,8 +137,8 @@ router.post('/', async function(req, res, next) {
     await newBook.save();
     return res.sendStatus(201);
   } catch (e) {
-    console.error(e);
-    res.sendStatus(500);
+      debug("DB problem", e);
+      res.sendStatus(500);
   }
 });
 

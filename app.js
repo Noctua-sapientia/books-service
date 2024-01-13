@@ -20,6 +20,7 @@ app.use('/api/v1/books', booksRouter);
 // setup connection to mongo
 const mongoose = require('mongoose');
 const DB_URL = (process.env.DB_URL || 'mongodb://localhost/test')
+console.log("Conneting to database: %s", DB_URL);
 
 mongoose.connect(DB_URL);
 const db = mongoose.connection;

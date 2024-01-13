@@ -42,6 +42,21 @@ const bookSchema = new mongoose.Schema({
     }]
 });
 
+bookSchema.methods.cleanup = function() {
+    return {
+        isbn: this.isbn,
+        title: this.title,
+        author: this.author,
+        year: this.year,
+        genre: this.genre,
+        options: this.options.map(option => ({
+            seller: option.seller,
+            stock: option.stock,
+            prize: option.prize,
+            reviews: option.reviews
+        }))
+        }
+    }
 const Book = mongoose.model('Book', bookSchema);
 
 module.exports = Book;
