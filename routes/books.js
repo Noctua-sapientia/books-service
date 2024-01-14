@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 var Book = require('../models/book');
 var debug = require('debug')('books-2:server');
-
+const verificarToken = require('./verificarToken') ;
 /*
 var books =[
     {
@@ -31,6 +31,7 @@ var books =[
 
 */
 
+/*AÑADIR verificarToken A TODO */
 /*GET books listing*/
 router.get('/', async function(req, res, next){
   try {
