@@ -11,6 +11,7 @@ var books =[
       "author": "J.K.Rowling",
       "year": "1997",
       "genre": "fantasía",
+      "rating": 4.7
       "options": [
         { "seller": 2, "stock": 110, "prize": 9.9, "reviews": 4.7},
         { "seller": 3, "stock": 120, "prize": 12.10, "reviews": 3.9}
@@ -248,6 +249,33 @@ router.put('/:isbn/:seller/options', async function(req, res, next) {
     res.sendStatus(500);
   }
 });
+
+// Aumenta el stock en el numero de unidades especificado
+router.put('/:isbn/:seller/stock', async function(req, res, next) {
+  const isbn = req.params.isbn;
+  const sellerId = parseInt(req.params.seller);
+
+  console.log(isbn, sellerId, req.body.units)
+  try {
+    const book = await Book.findOne({ isbn: isbn });
+    if (!book) {
+      return res.status(404).send("Book not found.");
+    }
+    const sellerOption = book.options.find(option => option.seller === sellerId);
+    if (!sellerOption) {
+      return res.status(404).send("Seller not found.");
+    }
+    sellerOption.stock += req.body.units;
+
+    await book.save();
+    res.status(200).send("Stock updated.");
+
+  } catch (error) {
+    console.error("Database error", error);
+    return res.status(500).send({ error: "Database error" });
+  }
+});
+
 
 /* DELETE book/:id */
 router.delete('/:isbn', async function(req, res, next) {
