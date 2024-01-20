@@ -49,11 +49,11 @@ bookSchema.methods.cleanup = function() {
         author: this.author,
         year: this.year,
         genre: this.genre,
+        rating: this.rating,
         options: this.options.map(option => ({
             seller: option.seller,
             stock: option.stock,
-            prize: option.prize,
-            reviews: option.reviews
+            prize: option.prize
         }))
         }
     }
