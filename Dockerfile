@@ -13,6 +13,6 @@ COPY routes ./routes
 COPY models/ ./models
 COPY app.js .
 
-EXPOSE 3000
+EXPOSE 4002
 
 CMD npm start
