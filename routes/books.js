@@ -3,6 +3,9 @@ var router = express.Router();
 var Book = require('../models/book');
 var debug = require('debug')('books-2:server');
 const verificarToken = require('./verificarToken') ;
+const cors = require('cors');
+
+router.use(cors());
 /*
 var books =[
     {
@@ -87,6 +90,30 @@ router.get('/:isbn/:seller', async function(req, res, next) {
   }
 });
 
+/*GET books/isbn/rating */
+router.get('/:isbn/:rating', async function(req, res, next) {
+  const isbn = req.params.isbn;
+  const ratingId = parseInt(req.params.seller);
+
+  try {
+    const foundBook = await Book.findOne({ isbn });
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    const foundRating = foundBook.options.find(option => option.rating === ratingId);
+
+    if (!foundRating) {
+      return res.status(404).send("Reseña no encontrada para este libro");
+    }
+
+    res.status(200).send(foundRating.cleanup());
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
+
 /*GET books/isbn/seller/options?options= */
 router.get('/:isbn/:seller/options', async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -108,8 +135,6 @@ router.get('/:isbn/:seller/options', async function(req, res, next) {
       return res.status(200).send({ stock: foundOption.stock });
     } else if (options === 'prize') {
       return res.status(200).send({ prize: foundOption.prize });
-    } else if (options === 'reviews') {
-      return res.status(200).send({ reviews: foundOption.reviews });
     } else if (options === 'seller') {
       return res.status(200).send({ seller: foundOption.seller });
     } else {
@@ -124,7 +149,7 @@ router.get('/:isbn/:seller/options', async function(req, res, next) {
 
 /* POST books */
 router.post('/', async function(req, res, next) {
-  const { isbn, author, title, year, genre, options } = req.body;
+  const { isbn, author, title, year, genre, rating, options } = req.body;
   
   const newBook = new Book({
     isbn,
@@ -132,6 +157,7 @@ router.post('/', async function(req, res, next) {
     title,
     year,
     genre,
+    rating,
     options
   });
 
@@ -182,6 +208,38 @@ router.post('/:isbn/:seller', async function(req, res, next) {
   }
 });
 
+/* POST books/:isbn/:rating */
+router.post('/:isbn/:rating', async function(req, res, next) {
+  const isbn = req.params.isbn;
+  const ratingId = parseInt(req.params.rating);
+
+  try {
+    // Buscar el libro por ISBN en la base de datos
+    const foundBook = await Book.findOne({ isbn });
+
+    if (!foundBook) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    // Verificar si el vendedor ya está asociado al libro
+    const existingSeller = foundBook.options.find(option => option.seller === sellerId);
+
+    if (!existingSeller) {
+      foundBook.rating.push({
+        rating: ratingId
+      });
+      await foundBook.save();
+
+      res.status(200).send('Valoración añadida al libro');
+    } else {
+      res.status(200).send('El vendedor ya está asociado a este libro');
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error al agregar valoración al libro');
+  }
+});
+
 /* PUT book */
 router.put('/:isbn', async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -201,7 +259,8 @@ router.put('/:isbn', async function(req, res, next) {
     foundBook.author = req.body.author;
     foundBook.year = req.body.year;
     foundBook.genre = req.body.genre;
-
+    foundBook.rating = req.body.rating;
+    
     await foundBook.save();
 
     res.status(200).send("Libro actualizado exitosamente");
@@ -327,6 +386,24 @@ router.delete('/:isbn/:seller', async function(req, res, next) {
     }
 
     res.status(200).send("Datos del vendedor borrados exitosamente");
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
+
+/* DELETE book/:id */
+router.delete('/:isbn', async function(req, res, next) {
+  const isbn = req.params.isbn;
+
+  try {
+    const result = await Book.findOneAndDelete({ isbn });
+
+    if (!result) {
+      return res.status(404).send("Libro no encontrado");
+    }
+
+    res.status(200).send("Libro eliminado exitosamente");
   } catch (error) {
     console.error(error);
     res.sendStatus(500);

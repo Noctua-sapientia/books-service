@@ -22,6 +22,10 @@ const bookSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    rating: {
+        type: Number,
+        required: true
+    },
     options: [{
         seller: {
             type: Number,
@@ -32,10 +36,6 @@ const bookSchema = new mongoose.Schema({
             required: true
         },
         prize: {
-            type: Number,
-            required: true
-        },
-        reviews: {
             type: Number,
             required: true
         }
