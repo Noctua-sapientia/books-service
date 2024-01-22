@@ -37,7 +37,7 @@ var books =[
 
 /*AÑADIR verificarToken A TODO */
 /*GET books listing*/
-router.get('/', async function(req, res, next){
+router.get('/', verificarToken, async function(req, res, next){
   try {
     const result = await Book.find();
     res.send(result.map((c) => c.cleanup()));
@@ -49,7 +49,7 @@ router.get('/', async function(req, res, next){
 
 
 /*GET books/isbn */
-router.get('/:isbn', async function(req, res, next) {
+router.get('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
 
   try {
@@ -67,7 +67,7 @@ router.get('/:isbn', async function(req, res, next) {
 });
 
 /*GET books/isbn/seller */
-router.get('/:isbn/:seller', async function(req, res, next) {
+router.get('/:isbn/:seller', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
@@ -91,7 +91,7 @@ router.get('/:isbn/:seller', async function(req, res, next) {
 });
 
 /*GET books/isbn/rating */
-router.get('/:isbn/:rating', async function(req, res, next) {
+router.get('/:isbn/:rating', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const ratingId = parseInt(req.params.seller);
 
@@ -115,7 +115,7 @@ router.get('/:isbn/:rating', async function(req, res, next) {
 });
 
 /*GET books/isbn/seller/options?options= */
-router.get('/:isbn/:seller/options', async function(req, res, next) {
+router.get('/:isbn/:seller/options', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
   const options = req.query.options;
@@ -148,7 +148,7 @@ router.get('/:isbn/:seller/options', async function(req, res, next) {
 
 
 /* POST books */
-router.post('/', async function(req, res, next) {
+router.post('/', verificarToken, async function(req, res, next) {
   const { isbn, author, title, year, genre, rating, options } = req.body;
   
   const newBook = new Book({
@@ -166,12 +166,12 @@ router.post('/', async function(req, res, next) {
     return res.sendStatus(201);
   } catch (e) {
       debug("DB problem", e);
-      res.sendStatus(500);
+      res.status(500).send(e);
   }
 });
 
 /* POST books/:isbn/:seller */
-router.post('/:isbn/:seller', async function(req, res, next) {
+router.post('/:isbn/:seller', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
@@ -209,7 +209,7 @@ router.post('/:isbn/:seller', async function(req, res, next) {
 });
 
 /* POST books/:isbn/:rating */
-router.post('/:isbn/:rating', async function(req, res, next) {
+router.post('/:isbn/:rating', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const ratingId = parseInt(req.params.rating);
 
@@ -241,7 +241,7 @@ router.post('/:isbn/:rating', async function(req, res, next) {
 });
 
 /* PUT book */
-router.put('/:isbn', async function(req, res, next) {
+router.put('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
 
   try {
@@ -271,7 +271,7 @@ router.put('/:isbn', async function(req, res, next) {
 });
 
 /* PUT books/:isbn/:seller/options */
-router.put('/:isbn/:seller/options', async function(req, res, next) {
+router.put('/:isbn/:seller/options', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
@@ -310,7 +310,7 @@ router.put('/:isbn/:seller/options', async function(req, res, next) {
 });
 
 // Aumenta el stock en el numero de unidades especificado
-router.put('/:isbn/:seller/stock', async function(req, res, next) {
+router.put('/:isbn/:seller/stock', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
@@ -337,7 +337,7 @@ router.put('/:isbn/:seller/stock', async function(req, res, next) {
 
 
 /* DELETE book/:id */
-router.delete('/:isbn', async function(req, res, next) {
+router.delete('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
 
   try {
@@ -355,7 +355,7 @@ router.delete('/:isbn', async function(req, res, next) {
 });
 
 /* DELETE book/:id/:seller */
-router.delete('/:isbn/:seller', async function(req, res, next) {
+router.delete('/:isbn/:seller', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
 
@@ -393,7 +393,7 @@ router.delete('/:isbn/:seller', async function(req, res, next) {
 });
 
 /* DELETE book/:id */
-router.delete('/:isbn', async function(req, res, next) {
+router.delete('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
 
   try {
