@@ -260,6 +260,7 @@ router.put('/:isbn', verificarToken, async function(req, res, next) {
     foundBook.year = req.body.year;
     foundBook.genre = req.body.genre;
     foundBook.rating = req.body.rating;
+    foundBook.options = req.body.options;
     
     await foundBook.save();
 
