@@ -1,14 +1,12 @@
 const mailgun = require('mailgun-js');
 
 const mg = mailgun({
-  apiKey: '43783e39653315761a0be9d79edee7ad-063062da-72a57ef4',
-  domain: 'sandboxe4768f1d1b324ff6ad99ebeb156ad0df.mailgun.org'
+  apiKey: '94e84ccb0408958cff9b84fa0c382b2f-063062da-741443a4',
+  domain: 'sandbox9a41b9e9b51b4356bd90b00a920b85cb.mailgun.org'
 });
 
 const sendEmail = async function(name, email, title) {
-    console.log(name);
-    console.log(email);
-    console.log(title);
+
     const data = {
     from: 'BOOKS NEWSLETTER NOCTUA SAPIENTIA <booksnewsletter@noctuasapientia.com>',
     to: email,

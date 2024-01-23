@@ -1,27 +1,28 @@
-const debug = require('debug')('books:users');
-
-const getSellersInfo = async function(sellerId, accessToken) {
-  try {
-    const headers = {
-        'Content-Type' : 'application/json',
-        Authorization: accessToken
-    };
-
-    const request = new Request(`http://localhost:4001/api/v1/sellers/${sellerId}`,{
-        method: 'GET',
-        headers: headers,
-    });
-
-    const response = await fetch(request);
-    
-    const sellerData = await response.json();
-    const { email, name } = sellerData;
-    return { email: email, name: name };
-
-  } catch (e) {
-    console.error("Error obtaining customer information:", e.message);
-    return null;
-  }
-};
+const axios = require('axios');
+const urlJoin = require('url-join');
+ 
+const USERS_SERVICE = process.env.USERS_SERVICE || 'http://localhost:4001';
+const API_VERSION = '/api/v1/sellers/';
+ 
+const getSellersInfo = async function(accessToken, userId) {
+ 
+    try {
+        const urlGet = urlJoin(USERS_SERVICE, API_VERSION, userId.toString());
+        const headers = {
+            Authorization: accessToken
+          };
+          const config = {
+            headers: headers,
+          };
+ 
+        const seller = await axios.get(urlGet, config);
+        const sellerData = seller.data;
+        console.log("VENDEDOR",sellerData);
+        return {email : sellerData.email, name : sellerData.name}
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
 
 module.exports = { getSellersInfo };

@@ -4,6 +4,7 @@ var Book = require('../models/book');
 var debug = require('debug')('books-2:server');
 var emailSender = require('../services/sendEmailService');
 const User = require("../services/users");
+const Order = require("../services/orders");
 const verificarToken = require('./verificarToken') ;
 const cors = require('cors');
 
@@ -37,8 +38,18 @@ var books =[
 
 */
 
-
-/*GET books listing*/
+/**
+ * @swagger
+ * /books:
+ *   get:
+ *     summary: Obtiene la lista de libros.
+ *     description: Requiere token de autenticación.
+ *     responses:
+ *       200:
+ *         description: Lista de libros obtenida correctamente.
+ *       500:
+ *         description: Error en el servidor.
+ */
 router.get('/', verificarToken, async function(req, res, next){
   try {
     const result = await Book.find();
@@ -49,8 +60,28 @@ router.get('/', verificarToken, async function(req, res, next){
   }
 });
 
-
-/*GET books/isbn */
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   get:
+ *     summary: Obtiene detalles de un libro por ISBN.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalles del libro obtenidos correctamente.
+ *       404:
+ *         description: Libro no encontrado.
+ *       500:
+ *         description: Error en el servidor.
+ */
+/*GET books listing*/
 router.get('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
 
@@ -68,6 +99,33 @@ router.get('/:isbn', verificarToken, async function(req, res, next) {
   }
 });
 
+/**
+ * @swagger
+ * /books/{isbn}/{seller}:
+ *   get:
+ *     summary: Obtiene detalles de un libro por ISBN y vendedor.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: seller
+ *         description: ID del vendedor.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Detalles del libro obtenidos correctamente.
+ *       404:
+ *         description: Libro o vendedor no encontrado.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /*GET books/isbn/seller */
 router.get('/:isbn/:seller', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -91,7 +149,33 @@ router.get('/:isbn/:seller', verificarToken, async function(req, res, next) {
     res.sendStatus(500);
   }
 });
-
+/**
+ * @swagger
+ * /books/{isbn}/{rating}:
+ *   get:
+ *     summary: Obtiene detalles de un libro por ISBN y calificación.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: rating
+ *         description: Calificación del libro.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Detalles del libro obtenidos correctamente.
+ *       404:
+ *         description: Libro o calificación no encontrados.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /*GET books/isbn/rating */
 router.get('/:isbn/:rating', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -116,7 +200,41 @@ router.get('/:isbn/:rating', verificarToken, async function(req, res, next) {
   }
 });
 
-/*GET books/isbn/seller/options?options= */
+/**
+ * @swagger
+ * /books/{isbn}/{seller}/options:
+ *   get:
+ *     summary: Obtiene opciones de un libro por ISBN y vendedor.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: seller
+ *         description: ID del vendedor.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: options
+ *         description: Tipo de opciones a obtener (stock, prize, seller).
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Opciones del libro obtenidas correctamente.
+ *       400:
+ *         description: Parámetro 'options' no válido.
+ *       404:
+ *         description: Libro o vendedor no encontrados.
+ *       500:
+ *         description: Error en el servidor.
+ */
 router.get('/:isbn/:seller/options', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
@@ -148,7 +266,25 @@ router.get('/:isbn/:seller/options', verificarToken, async function(req, res, ne
   }
 });
 
-
+/**
+ * @swagger
+ * /books:
+ *   post:
+ *     summary: Crea un nuevo libro.
+ *     description: Requiere token de autenticación.
+ *     requestBody:
+ *       description: Datos del nuevo libro.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Book'
+ *     responses:
+ *       201:
+ *         description: Libro creado exitosamente.
+ *       500:
+ *         description: Error en el servidor.
+ */
 router.post('/', verificarToken, async function(req, res, next) {
   const { isbn, author, title, year, genre, rating, options } = req.body;
   const accessToken = req.headers.authorization;
@@ -167,23 +303,53 @@ router.post('/', verificarToken, async function(req, res, next) {
     //userOfReview llega nulo
     //const findOptions = options.find(option => option.seller);
     //NO SE ENVIA NADA A GETSELLERSINFO VER CON PABLO PARECE QUE NO HACE BIEN EL GET
-    const userOfReview = User.getSellersInfo(options.seller, accessToken);
+    const userOfReview = await User.getSellersInfo(accessToken, options.seller);
     console.log("Nombre", userOfReview.name);
     console.log("Email", userOfReview.email);
 
-    if (userOfReview) {
       await emailSender.sendEmail(userOfReview.name, userOfReview.email, newBook.title);
-    }
-
-    await newBook.save();
-    res.sendStatus(201);
+      await newBook.save();
+      res.sendStatus(201);
   } catch (e) {
     console.error("Error:", e);
     res.status(500).send(e);
   }
 });
 
-
+/**
+ * @swagger
+ * /books/{isbn}/{seller}:
+ *   post:
+ *     summary: Agrega un nuevo vendedor a un libro por ISBN.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: seller
+ *         description: ID del vendedor.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       description: Datos del vendedor a agregar.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BookOptions'
+ *     responses:
+ *       200:
+ *         description: Vendedor añadido correctamente al libro.
+ *       404:
+ *         description: Libro no encontrado o vendedor ya asociado.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /* POST books/:isbn/:seller */
 router.post('/:isbn/:seller', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -222,6 +388,33 @@ router.post('/:isbn/:seller', verificarToken, async function(req, res, next) {
   }
 });
 
+/**
+ * @swagger
+ * /books/{isbn}/{rating}:
+ *   post:
+ *     summary: Agrega una nueva valoración a un libro por ISBN.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: rating
+ *         description: ID de la valoración.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Valoración añadida correctamente al libro.
+ *       404:
+ *         description: Libro no encontrado o valoración ya asociada.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /* POST books/:isbn/:rating */
 router.post('/:isbn/:rating', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -254,6 +447,37 @@ router.post('/:isbn/:rating', verificarToken, async function(req, res, next) {
   }
 });
 
+
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   put:
+ *     summary: Actualiza un libro por ISBN.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       description: Nuevos datos del libro.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Book'
+ *     responses:
+ *       200:
+ *         description: Libro actualizado correctamente.
+ *       404:
+ *         description: Libro no encontrado.
+ *       400:
+ *         description: ISBN incorrecto.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /* PUT book */
 router.put('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -285,6 +509,48 @@ router.put('/:isbn', verificarToken, async function(req, res, next) {
   }
 });
 
+/**
+ * @swagger
+ * /books/{isbn}/{seller}/options:
+ *   put:
+ *     summary: Actualiza las opciones de un libro por ISBN y vendedor.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: seller
+ *         description: ID del vendedor.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: options
+ *         description: Tipo de opciones a actualizar (stock, prize, reviews).
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       description: Nuevos valores de las opciones seleccionadas.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BookOptions'
+ *     responses:
+ *       200:
+ *         description: Opciones actualizadas correctamente.
+ *       400:
+ *         description: Parámetro 'options' no válido.
+ *       404:
+ *         description: Libro o vendedor no encontrados.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /* PUT books/:isbn/:seller/options */
 router.put('/:isbn/:seller/options', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -323,7 +589,43 @@ router.put('/:isbn/:seller/options', verificarToken, async function(req, res, ne
     res.sendStatus(500);
   }
 });
-
+/**
+ * @swagger
+ * /books/{isbn}/{seller}/stock:
+ *   put:
+ *     summary: Aumenta el stock en el número de unidades especificado para un libro y vendedor.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: seller
+ *         description: ID del vendedor.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       description: Número de unidades a aumentar en el stock.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               units:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Stock actualizado correctamente.
+ *       404:
+ *         description: Libro o vendedor no encontrados.
+ *       500:
+ *         description: Error en el servidor.
+ */
 // Aumenta el stock en el numero de unidades especificado
 router.put('/:isbn/:seller/stock', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
@@ -369,10 +671,32 @@ router.delete('/:isbn', verificarToken, async function(req, res, next) {
   }
 });
 
+/**
+ * @swagger
+ * /books/{isbn}:
+ *   delete:
+ *     summary: Elimina un libro por ISBN.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Libro eliminado correctamente.
+ *       404:
+ *         description: Libro no encontrado.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /* DELETE book/:id/:seller */
 router.delete('/:isbn/:seller', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
   const sellerId = parseInt(req.params.seller);
+  const accessToken = req.headers.authorization;
 
   try {
     const foundBook = await Book.findOne({ isbn });
@@ -396,8 +720,11 @@ router.delete('/:isbn/:seller', verificarToken, async function(req, res, next) {
     if (numVendedores > 1) {
       foundBook.options.splice(findOptionIndex, 1);
       await foundBook.save();
+      Order.cancelDeletedBookOrders(accessToken, isbn, sellerId);
+
     } else {
       await Book.findOneAndDelete({ isbn });
+      Order.cancelDeletedBookOrders(accessToken, isbn, sellerId);
     }
 
     res.status(200).send("Datos del vendedor borrados exitosamente");
@@ -406,7 +733,33 @@ router.delete('/:isbn/:seller', verificarToken, async function(req, res, next) {
     res.sendStatus(500);
   }
 });
-
+/**
+ * @swagger
+ * /books/{isbn}/{seller}:
+ *   delete:
+ *     summary: Elimina los datos de un vendedor para un libro por ISBN.
+ *     description: Requiere token de autenticación.
+ *     parameters:
+ *       - in: path
+ *         name: isbn
+ *         description: ISBN del libro.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: seller
+ *         description: ID del vendedor.
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Datos del vendedor eliminados correctamente.
+ *       404:
+ *         description: Libro, vendedor o opciones no encontrados.
+ *       500:
+ *         description: Error en el servidor.
+ */
 /* DELETE book/:id */
 router.delete('/:isbn', verificarToken, async function(req, res, next) {
   const isbn = req.params.isbn;
