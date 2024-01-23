@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:13-alpine
 
 WORKDIR /app
 
@@ -8,10 +8,11 @@ COPY package-lock.json .
 RUN npm install
 
 COPY bin/ ./bin
-COPY public ./public
-COPY routes ./routes
+COPY public/ ./public
+COPY routes/ ./routes
 COPY models/ ./models
 COPY app.js .
+COPY db.js  .
 
 EXPOSE 4002
 

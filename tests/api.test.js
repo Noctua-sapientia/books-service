@@ -66,7 +66,7 @@ describe("Books API", () => {
         };
         var dbSave;
 
-        beforEach(() => {
+        beforeEach(() => {
             dbSave = jest.spyOn(Book.protype, "save")
         });
 

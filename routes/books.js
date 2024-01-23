@@ -2,6 +2,8 @@ var express = require('express');
 var router = express.Router();
 var Book = require('../models/book');
 var debug = require('debug')('books-2:server');
+var emailSender = require('../services/sendEmailService');
+const User = require("../services/users");
 const verificarToken = require('./verificarToken') ;
 const cors = require('cors');
 
@@ -35,7 +37,7 @@ var books =[
 
 */
 
-/*AÑADIR verificarToken A TODO */
+
 /*GET books listing*/
 router.get('/', verificarToken, async function(req, res, next){
   try {
@@ -147,10 +149,10 @@ router.get('/:isbn/:seller/options', verificarToken, async function(req, res, ne
 });
 
 
-/* POST books */
 router.post('/', verificarToken, async function(req, res, next) {
   const { isbn, author, title, year, genre, rating, options } = req.body;
-  
+  const accessToken = req.headers.authorization;
+
   const newBook = new Book({
     isbn,
     author,
@@ -160,15 +162,27 @@ router.post('/', verificarToken, async function(req, res, next) {
     rating,
     options
   });
-
+  console.log("Opciones", options.seller);
   try {
+    //userOfReview llega nulo
+    //const findOptions = options.find(option => option.seller);
+    //NO SE ENVIA NADA A GETSELLERSINFO VER CON PABLO PARECE QUE NO HACE BIEN EL GET
+    const userOfReview = User.getSellersInfo(options.seller, accessToken);
+    console.log("Nombre", userOfReview.name);
+    console.log("Email", userOfReview.email);
+
+    if (userOfReview) {
+      await emailSender.sendEmail(userOfReview.name, userOfReview.email, newBook.title);
+    }
+
     await newBook.save();
-    return res.sendStatus(201);
+    res.sendStatus(201);
   } catch (e) {
-      debug("DB problem", e);
-      res.status(500).send(e);
+    console.error("Error:", e);
+    res.status(500).send(e);
   }
 });
+
 
 /* POST books/:isbn/:seller */
 router.post('/:isbn/:seller', verificarToken, async function(req, res, next) {
