@@ -4,3 +4,6 @@ Julia García Flores
 Cristian Antonio Cabello Arango
 
 La documentación correspondiente a este microservicio se encuentra dentro del documento documentation.pdf disponible en este repositorio.
+
+El resto de la documentación se encuentra en el repositorio de la organización, accesible desde la siguiente dirección: https://github.com/Noctua-sapientia/docs
+
